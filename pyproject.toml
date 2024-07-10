@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "blake-email-sender"
+version = "0.1.0"
+description = ""
+authors = ["blakeam-tech <bamartin1618@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+google-auth = "2.32.0"
+google-auth-oauthlib = "0.4.1"
+google-auth-httplib2 = "0.2.0"
+google-api-python-client = "2.137.0"
+pandas = "2.2.2"
+openai = "1.35.13"
+streamlit = "1.36.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
