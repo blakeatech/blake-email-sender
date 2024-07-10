@@ -1,5 +1,6 @@
 # Auto Response Streamlit App
 [![GitHub star chart](https://img.shields.io/github/stars/blakeamtech/blake-email-sender?style=flat-square)](https://star-history.com/#blakeamtech/blake-email-sender)
+[![Open Issues](https://img.shields.io/github/issues-raw/blakeamtech/blake-email-sender?style=flat-square)](https://github.com/blakeamtech/blake-email-sender/issues)
 ## Overview
 
 It began with compiling my own writings and responses to posts. I then employed the OpenAI API to create a synthetic dataset of emails and replies, with the replies engineered to mimic my writing style.
