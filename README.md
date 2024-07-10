@@ -1,4 +1,4 @@
-# Auto Response Streamlit App
+# Auto Response Gmail Automation
 [![GitHub star chart](https://img.shields.io/github/stars/blakeamtech/blake-email-sender?style=flat-square)](https://star-history.com/#blakeamtech/blake-email-sender)
 [![Open Issues](https://img.shields.io/github/issues-raw/blakeamtech/blake-email-sender?style=flat-square)](https://github.com/blakeamtech/blake-email-sender/issues)
 ## Overview
