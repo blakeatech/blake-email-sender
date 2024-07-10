@@ -1,5 +1,6 @@
 # Auto Response Streamlit App
 
+![Alt text](App.png)
 ## Overview
 
 This Python-based application leverages Streamlit, the Gmail API, and OpenAI's powerful models to provide an interactive platform for automating email responses and managing chats. It offers a dynamic interface for real-time email communication and conversation management with AI-enhanced capabilities.
