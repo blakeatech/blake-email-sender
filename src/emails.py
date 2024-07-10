@@ -1,3 +1,8 @@
+"""
+This module provides a class for managing Gmail operations including sending emails
+through the Gmail API.
+"""
+
 import os.path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -12,6 +17,8 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
 
 class GmailManager:
+    """A class to authenticate and send emails using the Gmail API."""
+    
     def __init__(self):
         self.service = self.authenticate_gmail()
 
@@ -28,14 +35,14 @@ class GmailManager:
                     "credentials.json", SCOPES
                 )
                 creds = flow.run_local_server(port=0)
-            with open("token.json", "w") as token:
+            with open("token.json", "w", encoding='utf-8') as token:
                 token.write(creds.to_json())
         return build("gmail", "v1", credentials=creds)
 
-    def create_message(self, sender, to, subject, message_text, thread_id=None):
+    def create_message(self, sender, recipient, subject, message_text, thread_id=None):
         """Create a message for an email."""
         message = MIMEMultipart()
-        message["to"] = to
+        message["to"] = recipient
         message["from"] = sender
         message["subject"] = subject
         msg = MIMEText(message_text, "html")
@@ -48,15 +55,11 @@ class GmailManager:
             body["threadId"] = thread_id
         return body
 
-    def send_email(self, sender, to, subject, message_text):
+    def send_email(self, sender, recipient, subject, message_text):
         """Send an email, optionally as part of an existing thread."""
         try:
-            message = self.create_message(sender, to, subject, message_text)
-            sent_message = (
-                self.service.users()
-                .messages()
-                .send(userId="me", body=message)
-                .execute()
-            )
+            message = self.create_message(sender, recipient, subject, message_text)
+            self.service.users().messages().send(userId="me", body=message).execute()
         except HttpError as error:
             print(f"An error occurred: {error}")
+            

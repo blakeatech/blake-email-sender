@@ -15,7 +15,6 @@ client = openai.OpenAI(
     api_key=os.getenv('OPEN_AI_KEY')
 )
 
-
 def generate_synthetic_example(prompt_text):
     """
     Generates a synthetic example based on the given prompt using the OpenAI API.
@@ -24,7 +23,7 @@ def generate_synthetic_example(prompt_text):
         prompt_text (str): The prompt text to generate the synthetic example.
 
     Returns:
-        dict: The generated synthetic example if successful, otherwise None.
+        dict or None: The generated synthetic example if successful, otherwise None.
     """
     required_keys = ["email", "response"]
     try:
@@ -43,14 +42,15 @@ def generate_synthetic_example(prompt_text):
 
         if set(response_json.keys()) == set(required_keys):
             return response_json
+        return None
     except Exception as error:
         print(f"Error generating synthetic example: {error}")
         return None
 
 
+NUMBER_OF_SAMPLES = 500
 synthetic_examples = []
-number_of_samples = 500
-for i in range(number_of_samples):
+for i in range(NUMBER_OF_SAMPLES):
     example = generate_synthetic_example(prompt)
     if example:
         synthetic_examples.append(example)
