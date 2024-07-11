@@ -6,7 +6,7 @@ import time
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
-from emails import GmailManager  # Assuming this is your custom module for email management
+from gmail_manager import GmailManager  # Assuming this is your custom module for email management
 
 # Load environment variables
 load_dotenv()
