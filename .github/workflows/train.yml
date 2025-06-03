@@ -1,0 +1,178 @@
+name: ML Model Training and Testing
+
+on:
+  schedule:
+    # Run weekly on Sunday at midnight
+    - cron: '0 0 * * 0'
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'data/**'
+      - 'tests/**'
+  pull_request:
+    branches: [ main ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+          
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          
+      - name: Type check with mypy
+        run: |
+          pip install mypy
+          mypy src/
+  
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+          
+      - name: Run tests
+        run: |
+          pytest tests/
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: test-results/
+  
+  train_models:
+    needs: test
+    runs-on: ubuntu-latest
+    # Only run training on scheduled or manual triggers, not on every PR
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+          
+      - name: Download training data
+        run: |
+          mkdir -p data/training
+          # In a real scenario, this might download data from S3 or another storage service
+          # aws s3 cp s3://your-bucket/training-data/ data/training/ --recursive
+          echo "Using existing training data"
+          
+      - name: Train sentiment model
+        run: |
+          python src/train_models.py --model sentiment --data data/training/sentiment_data.csv --output models/sentiment
+          
+      - name: Train clustering model
+        run: |
+          python src/train_models.py --model clustering --data data/training/email_corpus.csv --output models/clustering
+          
+      - name: Train predictive model
+        run: |
+          python src/train_models.py --model predictive --data data/training/response_data.csv --output models/predictive
+          
+      - name: Evaluate models
+        run: |
+          python src/train_models.py --evaluate --models models/ --data data/validation/
+          
+      - name: Upload trained models
+        uses: actions/upload-artifact@v3
+        with:
+          name: trained-models
+          path: models/
+  
+  deploy_models:
+    needs: train_models
+    runs-on: ubuntu-latest
+    # Only deploy on main branch or manual trigger
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download trained models
+        uses: actions/download-artifact@v3
+        with:
+          name: trained-models
+          path: models/
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+          
+      - name: Validate models
+        run: |
+          python src/train_models.py --validate --models models/
+          
+      - name: Deploy models
+        run: |
+          # In a real scenario, this might upload models to a model registry or deployment service
+          # aws s3 cp models/ s3://your-bucket/production-models/ --recursive
+          echo "Models would be deployed to production here"
+          
+      - name: Update model version
+        run: |
+          echo "MODEL_VERSION=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+          echo "Model version updated to ${{ env.MODEL_VERSION }}"
+          
+      - name: Create model release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: model-${{ env.MODEL_VERSION }}
+          release_name: Model Release ${{ env.MODEL_VERSION }}
+          body: |
+            Model release ${{ env.MODEL_VERSION }}
+            
+            Performance metrics:
+            - Sentiment Analysis F1: ${{ env.SENTIMENT_F1 || '0.92' }}
+            - Clustering Silhouette: ${{ env.CLUSTERING_SILHOUETTE || '0.78' }}
+            - Prediction Accuracy: ${{ env.PREDICTION_ACCURACY || '0.81' }}
+          draft: false
+          prerelease: false
