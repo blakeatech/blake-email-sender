@@ -16,34 +16,34 @@ Email overload affects productivity across organizations, with the average profe
 ### Architecture Decisions & Rationale
 
 **Q: Why use a multi-stage pipeline instead of an end-to-end model?**
-A: Modularity and debuggability. Each stage (multimodal processing → analysis → clustering/prediction → response) can be optimized, monitored, and replaced independently. When sentiment analysis fails, we know exactly where to look. End-to-end models are black boxes that make production debugging a nightmare.
+Modularity and debuggability. Each stage (multimodal processing → analysis → clustering/prediction → response) can be optimized, monitored, and replaced independently. When sentiment analysis fails, we know exactly where to look. End-to-end models are black boxes that make production debugging a nightmare.
 
 **Q: Why separate multimodal processing upfront instead of processing modalities in parallel throughout?**
-A: Early feature fusion performs better than late fusion for email classification tasks. Vision transformers (BLIP/CLIP) and OCR need to inform sentiment analysis - an angry emoji in an image changes the entire email's classification. Processing everything upfront creates a unified feature space.
+Early feature fusion performs better than late fusion for email classification tasks. Vision transformers (BLIP/CLIP) and OCR need to inform sentiment analysis - an angry emoji in an image changes the entire email's classification. Processing everything upfront creates a unified feature space.
 
 **Q: Why UMAP + HDBSCAN for clustering instead of simpler approaches like K-means?**
-A: Email content doesn't form spherical clusters. UMAP preserves local neighborhoods in high-dimensional embedding space while reducing to 50 dimensions for clustering efficiency. HDBSCAN handles variable-density clusters and automatically determines cluster count - critical for email data where we don't know how many natural categories exist.
+Email content doesn't form spherical clusters. UMAP preserves local neighborhoods in high-dimensional embedding space while reducing to 50 dimensions for clustering efficiency. HDBSCAN handles variable-density clusters and automatically determines cluster count - critical for email data where we don't know how many natural categories exist.
 
 **Q: Why sentence transformers for embeddings instead of simpler TF-IDF or word2vec?**
-A: Context matters tremendously in email. "Thanks" in a complaint email vs. a thank-you email have completely different semantic meanings. Sentence transformers capture this contextual difference through bidirectional attention, while TF-IDF treats words as independent features.
+Context matters tremendously in email. "Thanks" in a complaint email vs. a thank-you email have completely different semantic meanings. Sentence transformers capture this contextual difference through bidirectional attention, while TF-IDF treats words as independent features.
 
 **Q: Why separate Analysis/Prediction/Response agents instead of a monolithic processor?**
-A: Fault isolation and scaling. Analysis agents can run on CPU, prediction agents need GPU for neural networks, and response agents hit external APIs with different rate limits. Separate agents allow independent scaling and resource allocation. If OpenAI API is down, analysis and prediction still work.
+Fault isolation and scaling. Analysis agents can run on CPU, prediction agents need GPU for neural networks, and response agents hit external APIs with different rate limits. Separate agents allow independent scaling and resource allocation. If OpenAI API is down, analysis and prediction still work.
 
 **Q: Why RoBERTa for sentiment instead of newer models like GPT-4?**
-A: Latency and cost. RoBERTa inference takes ~50ms locally vs 2-3 seconds for GPT-4 API calls. For real-time email processing, we need sub-second response times. RoBERTa fine-tuned on email data actually outperforms general-purpose LLMs on sentiment classification.
+Latency and cost. RoBERTa inference takes ~50ms locally vs 2-3 seconds for GPT-4 API calls. For real-time email processing, we need sub-second response times. RoBERTa fine-tuned on email data actually outperforms general-purpose LLMs on sentiment classification.
 
 **Q: Why FAISS + Weaviate dual vector store setup?**
-A: Different use cases need different trade-offs. FAISS is fast for local development and exact similarity search but doesn't scale horizontally. Weaviate handles distributed search and complex filtering but adds network latency. We use FAISS for real-time lookup and Weaviate for complex analytical queries.
+Different use cases need different trade-offs. FAISS is fast for local development and exact similarity search but doesn't scale horizontally. Weaviate handles distributed search and complex filtering but adds network latency. We use FAISS for real-time lookup and Weaviate for complex analytical queries.
 
 **Q: Why separate clustering from response prediction instead of joint optimization?**
-A: Different optimization targets. Clustering optimizes for semantic similarity (silhouette score), while response prediction optimizes for accuracy metrics (F1). Joint optimization leads to suboptimal performance on both tasks. Separate optimization allows each component to excel at its specific task.
+Different optimization targets. Clustering optimizes for semantic similarity (silhouette score), while response prediction optimizes for accuracy metrics (F1). Joint optimization leads to suboptimal performance on both tasks. Separate optimization allows each component to excel at its specific task.
 
 **Q: Why fine-tune OpenAI models instead of using off-the-shelf GPT?**
-A: Domain adaptation. Email responses have specific patterns, formality levels, and contextual requirements that general-purpose models handle poorly. Fine-tuning on email data improves response relevance by ~23% and reduces hallucinations in professional contexts.
+Domain adaptation. Email responses have specific patterns, formality levels, and contextual requirements that general-purpose models handle poorly. Fine-tuning on email data improves response relevance by ~23% and reduces hallucinations in professional contexts.
 
 **Q: Why real-time monitoring instead of batch evaluation?**
-A: Data drift happens continuously. Email patterns, sender behavior, and language evolve constantly. Batch evaluation might miss gradual degradation that occurs between evaluation cycles. Real-time monitoring catches performance drops immediately and triggers retraining before user experience degrades.
+Data drift happens continuously. Email patterns, sender behavior, and language evolve constantly. Batch evaluation might miss gradual degradation that occurs between evaluation cycles. Real-time monitoring catches performance drops immediately and triggers retraining before user experience degrades.
 
 **Q: Why GitHub Actions for model retraining instead of dedicated ML platforms?**
 A: Infrastructure simplicity and cost. Most ML platforms are overkill for this scale and add vendor lock-in. GitHub Actions provides sufficient orchestration for weekly retraining jobs, integrates with our existing CI/CD, and costs significantly less than dedicated ML platforms for small-scale operations.
